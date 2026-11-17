@@ -1,0 +1,976 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Work a shift inside John Searle's Chinese Room, then rebuild it six ways and find out what your verdicts rest on.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Crect width=%2724%27 height=%2724%27 rx=%275%27 fill=%27%231E3A31%27/%3E%3Cpath d=%27M5 19Q5 5 12 5Q19 5 19 19%27 fill=%27none%27 stroke=%27%23EAD9A2%27 stroke-width=%272.4%27 stroke-linecap=%27round%27/%3E%3Ccircle cx=%2712%27 cy=%2714%27 r=%271.8%27 fill=%27%23EAD9A2%27/%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<title>Inside the Chinese Room</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Young+Serif&display=swap">
+
+<style>
+  /* Layout: one stage on screen at a time under a sticky progress rail.
+     The play surface is a green desk blotter holding manila slips; everything
+     outside the room is pale office wall. Two inks carry the verdicts:
+     carbon-blue for "no understanding", lamp-amber for "understanding". */
+  :root{
+    --wall:#E6EBE3; --panel:#F3F6F0; --ink:#17211D; --ink-soft:#52615A; --line:#C4CEC4;
+    --blotter:#1E3A31; --blotter-2:#28493E; --blotter-line:#3C6153; --on-blotter:#E4EDE6; --on-blotter-soft:#A3BAAE;
+    --manila:#EAD9A2; --manila-edge:#C9B56F; --manila-ink:#27251C;
+    --page:#F2F0E6; --page-ink:#23251F; --page-line:#D6D3C3; --page-hit:#DDE6F7;
+    --stamp:#3538A8; --stamp-fill:#3538A8; --on-stamp:#F3F4FF; --stamp-soft:rgba(53,56,168,.09);
+    --lamp:#8F5406; --lamp-fill:#DE9A22; --on-lamp:#221803; --lamp-soft:rgba(222,154,34,.16);
+    --slot:#0B1411; --glow:rgba(240,169,59,.55);
+    --display:"Young Serif",Georgia,"Times New Roman",serif;
+    --body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --wall:#111815; --panel:#18211D; --ink:#E2EAE4; --ink-soft:#9AABA2; --line:#2C3A34;
+      --blotter:#1B352C; --blotter-2:#244237; --blotter-line:#37584B;
+      --stamp:#A9ACFF; --stamp-fill:#A9ACFF; --on-stamp:#12133A; --stamp-soft:rgba(169,172,255,.12);
+      --lamp:#F2B04A; --lamp-fill:#F2B04A; --lamp-soft:rgba(242,176,74,.14);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --wall:#111815; --panel:#18211D; --ink:#E2EAE4; --ink-soft:#9AABA2; --line:#2C3A34;
+    --blotter:#1B352C; --blotter-2:#244237; --blotter-line:#37584B;
+    --stamp:#A9ACFF; --stamp-fill:#A9ACFF; --on-stamp:#12133A; --stamp-soft:rgba(169,172,255,.12);
+    --lamp:#F2B04A; --lamp-fill:#F2B04A; --lamp-soft:rgba(242,176,74,.14);
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:var(--wall);color:var(--ink);font:400 17px/1.6 var(--body)}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--wall)}
+  h1,h2,h3{font-family:var(--display);font-weight:400;line-height:1.14;text-wrap:balance;margin:0}
+  h1{font-size:clamp(2.1rem,5.2vw,3.3rem)}
+  h2{font-size:clamp(1.7rem,3.8vw,2.4rem)}
+  h3{font-size:1.3rem}
+  h1:focus,h2:focus,h3:focus{outline:none}
+  p{margin:0;max-width:66ch}
+  button{font:inherit;color:inherit;cursor:pointer}
+  button:disabled{cursor:default}
+  :focus-visible{outline:3px solid var(--lamp-fill);outline-offset:2px}
+  .mono{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase}
+  .soft{color:var(--ink-soft)}
+
+  /* ---------- rail ---------- */
+  .rail{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--wall);border-bottom:1px solid var(--line)}
+  .rail-in{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:12px;padding-block:10px;
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .rail ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;flex:1;min-width:0;flex-wrap:wrap}
+  .rail li button{display:flex;align-items:center;gap:8px;background:none;border:1px solid transparent;border-radius:99px;
+    padding:5px 12px 5px 6px;font-family:var(--mono);font-size:.74rem;letter-spacing:.04em;color:var(--ink-soft)}
+  .rail li .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:.7rem}
+  .rail li button:not(:disabled):hover{border-color:var(--line);color:var(--ink)}
+  .rail li button:disabled{opacity:.45}
+  .rail li button[aria-current="step"]{color:var(--ink);border-color:var(--ink)}
+  .rail li button[aria-current="step"] .n{background:var(--ink);color:var(--wall);border-color:var(--ink)}
+  .linkbtn{background:none;border:none;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;padding:6px 2px;white-space:nowrap}
+  .linkbtn:hover{color:var(--ink)}
+
+  .wrap{max-width:1040px;margin:0 auto;padding-block:30px 60px;
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .stage{display:flex;flex-direction:column;gap:24px}
+  .head{display:flex;flex-direction:column;gap:12px}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--lamp)}
+  .lede{font-size:1.12rem}
+  .note{font-size:.9rem;color:var(--ink-soft)}
+
+  .btn{border:none;border-radius:8px;padding:12px 22px;font-weight:600;background:var(--ink);color:var(--wall)}
+  .btn:hover:not(:disabled){filter:brightness(1.12)}
+  .btn:disabled{opacity:.35}
+  .btn.lamp{background:var(--lamp-fill);color:var(--on-lamp)}
+  .btn.ghost{background:none;color:var(--ink);border:1.5px solid var(--line)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+
+  /* ---------- glyphs ---------- */
+  .g{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+  .g .d{stroke-width:3.6}
+  .glyphs{display:flex;gap:.22em;flex-wrap:wrap}
+
+  /* ---------- stage 0 : the shift ---------- */
+  .blotter{background:var(--blotter);color:var(--on-blotter);border-radius:14px;padding:22px;
+    box-shadow:inset 0 0 0 6px var(--blotter),inset 0 0 0 7px var(--blotter-line);display:flex;flex-direction:column;gap:16px}
+  .shift-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .shift-head .mono{color:var(--on-blotter-soft)}
+  .pips{display:flex;gap:6px}
+  .pips i{width:22px;height:6px;border-radius:3px;background:var(--blotter-line)}
+  .pips i.on{background:var(--lamp-fill)}
+  .instr{font-size:1.05rem;font-weight:500;min-height:1.6em;max-width:none}
+  .instr.err{color:var(--manila)}
+  .bench{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:22px;align-items:start}
+  .door{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .slot{height:10px;border-radius:5px;background:var(--slot);box-shadow:0 0 20px 2px var(--glow),inset 0 -2px 0 var(--lamp-fill)}
+  .slip{background:var(--manila);color:var(--manila-ink);border:1px solid var(--manila-edge);border-radius:3px;
+    padding:12px 16px 14px;box-shadow:0 2px 0 rgba(0,0,0,.18),0 10px 22px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:8px}
+  .slip .mono{color:#6B6235;font-size:.64rem}
+  .slip.in .glyphs{font-size:2.6rem}
+  .slip.in.arrive{animation:drop .55s cubic-bezier(.2,.8,.3,1) both}
+  @keyframes drop{from{transform:translateY(-34px) rotate(-2deg);opacity:0}to{transform:none;opacity:1}}
+  .slip.out.sent{animation:leave .55s ease-in both}
+  @keyframes leave{to{transform:translateY(-60px) rotate(2deg);opacity:0}}
+  .ref{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--on-blotter-soft);font-size:.86rem;min-height:1.8em}
+  .ref .glyphs{font-size:1.5rem;color:var(--on-blotter)}
+  .cells{display:flex;gap:8px;flex-wrap:wrap}
+  .cell{width:52px;height:52px;border:1.5px dashed #9A8A4E;border-radius:4px;display:grid;place-items:center;font-size:2.1rem}
+  .cell.full{border-style:solid;border-color:transparent;animation:stamp .25s ease-out}
+  @keyframes stamp{from{transform:scale(1.7);opacity:0}to{transform:none;opacity:1}}
+  .tray{display:flex;gap:8px;flex-wrap:wrap}
+  .tile{width:52px;height:52px;border-radius:6px;border:1px solid var(--manila-edge);background:var(--manila);color:var(--manila-ink);
+    display:grid;place-items:center;font-size:2rem;padding:0;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+  .tile:hover:not(:disabled){transform:translateY(-2px)}
+  .tile:disabled{opacity:.3;box-shadow:none}
+  .tile.used{opacity:.3}
+  .shake{animation:shake .38s}
+  @keyframes shake{25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+
+  .book{background:var(--page);color:var(--page-ink);border-radius:4px 10px 10px 4px;overflow:hidden;
+    box-shadow:-5px 0 0 #2B2F6B,0 10px 22px rgba(0,0,0,.25);min-width:0}
+  .book-head{padding:12px 16px;border-bottom:1px solid var(--page-line);display:flex;flex-direction:column;gap:2px}
+  .book-head b{font-family:var(--display);font-weight:400;font-size:1.1rem}
+  .book-head span{font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;color:#6A6C5E}
+  .rule{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;border-bottom:1px solid var(--page-line);
+    padding:10px 16px;text-align:left;color:var(--page-ink)}
+  .rule:last-child{border-bottom:none}
+  .rule .id{font-family:var(--mono);font-size:.64rem;color:#7A7C6C;width:3.2em;flex:none}
+  .rule .glyphs{font-size:1.45rem;flex-wrap:nowrap}
+  .rule .arr{font-family:var(--mono);color:#7A7C6C;flex:none}
+  .rule:hover:not(:disabled){background:#E7E4D4}
+  .rule:disabled{opacity:.38}
+  .rule.hit,.rule.hit:disabled{opacity:1;background:var(--page-hit);box-shadow:inset 4px 0 0 #2B2F6B}
+  .shift-end{display:flex;flex-direction:column;gap:16px;align-items:flex-start;padding:18px 6px 8px}
+  .shift-end p{font-size:1.15rem;max-width:52ch}
+
+  /* ---------- stage 1 : the door ---------- */
+  .transcript{display:flex;flex-direction:column;gap:14px}
+  .ex{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:18px;
+    animation:rise .5s both;animation-delay:calc(var(--i)*.3s)}
+  @keyframes rise{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+  .line{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .line .mono{color:var(--ink-soft)}
+  .line.you .mono{color:var(--stamp)}
+  .line.them .mono{color:var(--lamp)}
+  .gl{display:flex;gap:12px;flex-wrap:wrap}
+  .gg{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:1.9rem}
+  .gg i{font:400 .62rem var(--mono);color:var(--ink-soft);font-style:normal}
+  .line .tr{font-family:var(--display);font-size:1.18rem;line-height:1.3}
+  .ask-block{display:flex;flex-direction:column;gap:14px}
+  .ask{font-family:var(--display);font-size:1.35rem;line-height:1.25;max-width:30em}
+  .verdict{display:flex;gap:8px;max-width:520px}
+  .vb{flex:1;min-width:0;padding:12px 8px;border:1.5px solid var(--line);background:var(--panel);border-radius:10px;font-weight:600}
+  .vb:hover{border-color:var(--ink)}
+  .vb-no[aria-pressed="true"]{background:var(--stamp-fill);color:var(--on-stamp);border-color:var(--stamp-fill)}
+  .vb-yes[aria-pressed="true"]{background:var(--lamp-fill);color:var(--on-lamp);border-color:var(--lamp-fill)}
+  .vb-unsure[aria-pressed="true"]{background:var(--ink-soft);color:var(--wall);border-color:var(--ink-soft)}
+  .argument{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;animation:rise .4s both}
+  .argument ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px;max-width:62ch}
+  .argument .so{font-family:var(--display);font-size:1.2rem;line-height:1.3;max-width:34em}
+  .after-door{display:flex;flex-direction:column;gap:18px}
+
+  /* ---------- stage 2 : rebuild ---------- */
+  .trail{display:flex;gap:4px;flex-wrap:wrap}
+  .trk{display:flex;align-items:center;gap:7px;background:none;border:1px solid transparent;border-radius:99px;padding:4px 10px 4px 6px;
+    font-family:var(--mono);font-size:.7rem;color:var(--ink-soft)}
+  .trk .dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line);flex:none}
+  .trk-no .dot{background:var(--stamp-fill);border-color:var(--stamp-fill)}
+  .trk-yes .dot{background:var(--lamp-fill);border-color:var(--lamp-fill)}
+  .trk-unsure .dot{background:var(--ink-soft);border-color:var(--ink-soft)}
+  .trk.cur{border-color:var(--ink);color:var(--ink)}
+  .trk:not(:disabled):hover{color:var(--ink)}
+  .dial{background:var(--panel);border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr);overflow:hidden}
+  .scene{background:var(--wall);border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:flex-start;gap:10px;padding:18px;min-width:0}
+  .scene svg{width:100%;height:auto;display:block}
+  .dial-body{padding:24px 26px;display:flex;flex-direction:column;gap:14px;min-width:0}
+  .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .after{display:flex;flex-direction:column;gap:12px;animation:rise .4s both}
+  .sides{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .side{border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .side p,.rest p{font-size:.95rem}
+  .who{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .rest{border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;background:var(--line)}
+  .rest-no{background:var(--stamp-soft)} .rest-no .who{color:var(--stamp)}
+  .rest-yes{background:var(--lamp-soft)} .rest-yes .who{color:var(--lamp)}
+  .dial-nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:6px}
+  .swap-ctl{display:flex;flex-direction:column;gap:6px}
+  .swap-ctl input{width:100%;accent-color:var(--lamp-fill)}
+  .swap-ctl output{font-family:var(--mono);font-size:.76rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+
+  .sc-floor{stroke:var(--line);stroke-width:2;fill:none}
+  .sc-room{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .sc-l{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .sc-thin{fill:none;stroke:var(--ink-soft);stroke-width:1.3;stroke-linecap:round}
+  .sc-head{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .sc-slip{fill:var(--manila);stroke:var(--manila-edge);stroke-width:1}
+  .sc-gap{stroke:var(--lamp-fill);stroke-width:5;stroke-linecap:round;fill:none}
+  .sc-book{fill:var(--stamp-fill);stroke:none}
+  .sc-sys{fill:none;stroke:var(--lamp-fill);stroke-width:2.5;stroke-dasharray:7 6;stroke-linecap:round}
+  .sc-w{fill:var(--stamp)}
+  .sc-node{fill:var(--lamp-fill);stroke:none}
+  .sc-rain{fill:none;stroke:var(--stamp);stroke-width:1.6;stroke-linecap:round}
+  .sc-solid{fill:var(--ink);stroke:none}
+  .sc-t{fill:var(--ink-soft);font:500 9.5px var(--mono);letter-spacing:.06em}
+  .neuron{fill:var(--stamp);opacity:.75}
+  .chip{fill:var(--lamp-fill)}
+
+  /* ---------- stage 3 : foundations ---------- */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;display:flex;flex-direction:column;gap:14px}
+  .chart-scroll{overflow-x:auto}
+  .chart-scroll svg{min-width:540px;width:100%;height:auto;display:block}
+  .ch-grid{stroke:var(--line);stroke-width:1}
+  .ch-path{fill:none;stroke:var(--ink-soft);stroke-width:2;stroke-linejoin:round}
+  .ch-no{fill:var(--stamp-fill)} .ch-yes{fill:var(--lamp-fill)} .ch-unsure{fill:var(--ink-soft)}
+  .ch-none{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:3 3}
+  .ch-t{fill:var(--ink-soft);font:500 10px var(--mono)}
+  .tensions{display:flex;flex-direction:column}
+  .tension{padding:16px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+  .tension:first-child{border-top:none;padding-top:0}
+  .tension:last-child{padding-bottom:0}
+  .tension h3{font-size:1.15rem}
+  .opts{display:flex;gap:8px;flex-wrap:wrap}
+  .opt{padding:10px 16px;border:1.5px solid var(--line);background:var(--wall);border-radius:10px;font-weight:500;text-align:left}
+  .opt:hover{border-color:var(--ink)}
+  .opt[aria-pressed="true"]{background:var(--ink);color:var(--wall);border-color:var(--ink)}
+  .reply-note{background:var(--wall);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;animation:rise .4s both}
+  .reply-note p{font-size:.97rem}
+
+  /* ---------- stage 4 : outside ---------- */
+  .cases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .case .scenario{font-size:1rem}
+  .case .ask{font-size:1.15rem}
+  .file textarea{width:100%;min-height:96px;border:1.5px solid var(--line);border-radius:10px;background:var(--wall);color:var(--ink);font:inherit;padding:12px 14px;resize:vertical}
+  .file .dump{font-family:var(--mono);font-size:.78rem;line-height:1.5;white-space:pre;resize:none;overflow-x:auto}
+  .file label{font-weight:600}
+  .qs{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-width:66ch}
+
+  footer{border-top:1px solid var(--line)}
+  .foot{max-width:1040px;margin:0 auto;padding-block:22px 40px;display:flex;flex-direction:column;gap:12px;font-size:.9rem;color:var(--ink-soft);
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .foot summary{cursor:pointer;font-weight:600;color:var(--ink)}
+  .foot ul{margin:10px 0 0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;max-width:72ch}
+
+  @media (max-width:860px){
+    .bench{display:flex;flex-direction:column;gap:14px}
+    .door{display:contents}
+    .book{order:1}
+    .ref,.slip.out,.tray,.door>div:last-child{order:2}
+    .rail-in{flex-wrap:wrap}
+    .rail ol{flex-wrap:nowrap;gap:2px}
+    .dial{grid-template-columns:1fr}
+    .scene{border-right:none;border-bottom:1px solid var(--line)}
+    .scene svg{max-width:420px;margin:0 auto}
+    .sides{grid-template-columns:1fr}
+    .cases{grid-template-columns:1fr}
+    .ex{grid-template-columns:1fr}
+    .rail li button:not([aria-current="step"]) .t{display:none}
+    .rail li button:not([aria-current="step"]){padding:5px 3px}
+    .blotter{padding:18px 14px}
+    .dial-body{padding:20px 18px}
+    .card{padding:18px 16px}
+  }
+  @media (max-width:420px){
+    .rule{padding:10px 10px;gap:7px}
+    .rule .glyphs{font-size:1.25rem}
+    .rule .id{width:2.8em}
+    .slip.in .glyphs{font-size:2.2rem}
+    .cell,.tile{width:46px;height:46px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms!important;animation-delay:0s!important;transition:none!important}
+  }
+</style>
+
+<nav class="rail" aria-label="Progress">
+  <div class="rail-in">
+    <ol id="rail"></ol>
+    <button class="linkbtn" id="resetBtn" type="button">Restart</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ STAGE 0 : THE SHIFT ============ -->
+  <section class="stage" id="st0">
+    <div class="head">
+      <span class="eyebrow">A thought experiment by John Searle, 1980</span>
+      <h1 tabindex="-1">Inside the Chinese Room</h1>
+      <p class="lede">You are locked in a room. Slips of paper covered in symbols come through a slot in the door. You can't read them. You have a rulebook that says which symbols to send back. Your shift is four slips long.</p>
+      <p class="note">Searle imagined Chinese because he couldn't read a word of it. Some of you can, so this room uses Tessel, a script made up for this game. Treat it as a real language you have never seen.</p>
+    </div>
+
+    <div class="blotter">
+      <div class="shift-head">
+        <span class="mono" id="slipCount">Slip 1 of 4</span>
+        <div class="pips" id="pips" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <p class="instr" id="instr" aria-live="polite"></p>
+
+      <div class="bench" id="bench">
+        <div class="door">
+          <div class="slot" aria-hidden="true"></div>
+          <div class="slip in" id="slipIn">
+            <span class="mono">In through the slot</span>
+            <div class="glyphs" id="inGlyphs"></div>
+          </div>
+          <div class="ref" id="ref"></div>
+          <div class="slip out" id="slipOut">
+            <span class="mono">Your reply</span>
+            <div class="cells" id="cells"></div>
+          </div>
+          <div class="tray" id="tray" aria-label="Symbol tiles"></div>
+          <div><button class="btn lamp" id="sendBtn" type="button" disabled>Pass it through the slot</button></div>
+        </div>
+
+        <div class="book">
+          <div class="book-head">
+            <b>Rulebook</b>
+            <span>IF THE SLIP MATCHES THE LEFT SIDE, SEND THE RIGHT SIDE</span>
+          </div>
+          <div id="rules"></div>
+        </div>
+      </div>
+
+      <div class="shift-end" id="shiftEnd" hidden>
+        <p>The slot goes dark. Four slips in, four replies out, every shape correct. Then you hear the lock turn.</p>
+        <button class="btn lamp" type="button" data-go="1">Open the door</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 1 : THE DOOR ============ -->
+  <section class="stage" id="st1" hidden>
+    <div class="head">
+      <span class="eyebrow">The door opens</span>
+      <h2 tabindex="-1">Here is what you said.</h2>
+      <p class="lede">The person outside was a student. Tessel is their first language. This is the conversation they just had with the room.</p>
+    </div>
+    <div class="transcript" id="transcript"></div>
+    <p class="lede">They walked away sure that someone in the room had listened and understood. You were matching shapes.</p>
+    <div class="ask-block">
+      <span class="mono soft">Your first verdict</span>
+      <p class="ask">Was there any understanding of Tessel inside that room?</p>
+      <div id="baseVerdict"></div>
+    </div>
+    <div class="after-door" id="afterDoor"></div>
+  </section>
+
+  <!-- ============ STAGE 2 : REBUILD ============ -->
+  <section class="stage" id="st2" hidden>
+    <div class="head">
+      <span class="eyebrow">Six changes to the room</span>
+      <h2 tabindex="-1">Rebuild the room</h2>
+      <p class="lede">Each change is a famous objection to Searle. After each one, give your verdict again. Nobody has settled these, so the only wrong answer is one you can't defend.</p>
+    </div>
+    <div class="trail" id="trail" aria-label="Your verdicts so far"></div>
+    <div class="dial" id="dial"></div>
+  </section>
+
+  <!-- ============ STAGE 3 : FOUNDATIONS ============ -->
+  <section class="stage" id="st3" hidden>
+    <div class="head">
+      <span class="eyebrow">Your seven verdicts</span>
+      <h2 tabindex="-1">What your answers rest on</h2>
+      <p class="lede" id="flipLine"></p>
+    </div>
+    <div class="card">
+      <div class="chart-scroll" id="chart"></div>
+    </div>
+    <div class="card">
+      <span class="mono soft">Where your answers pull against each other</span>
+      <div class="tensions" id="tensions"></div>
+    </div>
+    <div class="card">
+      <span class="mono soft">Who you are closest to</span>
+      <div id="camp"></div>
+    </div>
+    <div class="card">
+      <span class="mono soft">One assumption you never got to vote on</span>
+      <p>Every verdict you gave was about something you can't see directly. You can't see understanding in the room. You can't see it in other people either.</p>
+      <p class="ask">How do you know the person next to you understands English?</p>
+      <div class="opts" id="otherOpts"></div>
+      <div id="otherNote"></div>
+    </div>
+    <div class="row"><button class="btn" type="button" data-go="4">Take it outside the room</button></div>
+  </section>
+
+  <!-- ============ STAGE 4 : OUTSIDE ============ -->
+  <section class="stage" id="st4" hidden>
+    <div class="head">
+      <span class="eyebrow">Why any of this matters</span>
+      <h2 tabindex="-1">Out of the room</h2>
+      <p class="lede">The room is a thought experiment. These four cases are happening now, and each one turns on the question you just answered seven times.</p>
+    </div>
+    <div class="cases" id="cases"></div>
+
+    <div class="card file">
+      <span class="mono soft">Your case file</span>
+      <label for="defInput">Finish the sentence. Make it a test you could apply to a person, the room and a chatbot alike.</label>
+      <textarea id="defInput" placeholder="Something understands when…"></textarea>
+      <textarea class="dump" id="caseText" readonly aria-label="Your case file as text"></textarea>
+      <div class="row">
+        <button class="btn" type="button" id="copyBtn">Copy my case file</button>
+        <span class="note" id="copyNote" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="mono soft">For the room you're sitting in</span>
+      <ol class="qs">
+        <li>Searle sat you in the operator's chair. How would the experiment feel if you had played the rulebook, or the student outside?</li>
+        <li>Which rebuild moved the most people in this class? What does that version have that the original room lacks?</li>
+        <li>Name a test for understanding that a person can pass and the room can't. Could a bigger rulebook pass it?</li>
+        <li>If we can never settle whether a system understands, what should the rule be for how it talks to people?</li>
+        <li>Your neurons follow chemistry as blindly as you followed the rulebook. Is your brain a room? If it isn't, what is the difference?</li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="foot">
+    <details>
+      <summary>Teacher notes</summary>
+      <ul>
+        <li>About 20 minutes solo. Students can copy their case file at the end and paste it wherever you collect work. Progress is saved on each student's own device and nowhere else.</li>
+        <li>To run it from the projector, unlock every section and take verdicts by show of hands. <button class="linkbtn" id="unlockBtn" type="button">Unlock every section</button></li>
+        <li>The six rebuilds follow the standard replies: systems, scale and speed (the Churchlands' luminous room), robot (Harnad's symbol grounding), learning from text (Bender and Koller's octopus), brain simulator, and gradual neuron replacement (Searle 1992, Chalmers 1996).</li>
+        <li>Searle's positions are paraphrased from “Minds, Brains, and Programs” (Behavioral and Brain Sciences, 1980) and The Rediscovery of the Mind (1992). No text here is a direct quotation.</li>
+      </ul>
+    </details>
+  </div>
+</footer>
+
+<script>
+(function(){
+'use strict';
+const $=(s,r)=>(r||document).querySelector(s);
+const $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+
+/* ---------------- state ---------------- */
+const KEY='inside-chinese-room-v1';
+const blank=()=>({stage:0,reached:0,round:0,shiftDone:false,dial:0,dialMax:0,swapPct:0,v:{},other:null,stakes:{},def:''});
+let S=blank();
+try{const raw=localStorage.getItem(KEY); if(raw){const o=JSON.parse(raw); if(o&&typeof o==='object') S=Object.assign(blank(),o);}}catch(e){}
+if(!S.v||typeof S.v!=='object') S.v={};
+if(!S.stakes||typeof S.stakes!=='object') S.stakes={};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ---------------- glyphs ---------------- */
+const ring=(x,y,r)=>`M${x-r} ${y}a${r} ${r} 0 1 0 ${2*r} 0a${r} ${r} 0 1 0 ${-2*r} 0`;
+const G={
+  you:['M5 19Q5 5 12 5Q19 5 19 19',[[12,14]]],
+  there:['M5 9Q5 20 12 20Q19 20 19 9M4 5H20',[]],
+  q:[ring(12,9,5)+'M12 14V20',[]],
+  yes:['M4 5H20M8 5V12M16 5V20',[[8,17]]],
+  i:['M6 4V20M6 12H14',[[18.5,12]]],
+  here:['M5 5Q5 19 12 19Q19 19 19 5',[[12,10]]],
+  today:[ring(12,12,6)+'M2.5 12H21.5',[]],
+  fail:['M5 4L19 14M4 20H20',[]],
+  exam:['M19 5H5V19H19',[[13,12]]],
+  sorry:['M5 10Q12 1 19 10M5 14Q12 23 19 14',[]],
+  tell:['M18 4V20M18 10L8 5M18 18L5 12',[]],
+  fear:['M4 5H20M4 11L9 19L14 11L20 19',[]],
+  parents:[ring(8,9,3.5)+ring(16,9,3.5)+'M4 19H20',[]],
+  not:['M5 16L14 4M10 20L19 8',[]],
+  alone:[ring(12,6.5,3)+'M12 9.5V20M7 20H17',[]],
+  understand:['M4 15Q4 5 12 5Q20 5 20 15M12 5V20',[]],
+  every:['M4 6H14M10 12H20M4 18H14',[]],
+  word:['M12 5H5V19H19V12',[[16.5,7]]],
+  x1:['M5 4Q5 15 12 15Q19 15 19 4M12 15V21',[]],
+  x2:['M4 13H20M12 13V20',[[12,6.5]]],
+  x3:['M6 20V10Q6 4 12 4M13 20V12H19',[]]
+};
+function glyph(k){
+  const g=G[k]; const dots=g[1].map(p=>`M${p[0]} ${p[1]}h.01`).join('');
+  return `<svg class="g" viewBox="0 0 24 24" aria-hidden="true"><path d="${g[0]}"/>${dots?`<path class="d" d="${dots}"/>`:''}</svg>`;
+}
+const glyphs=a=>a.map(glyph).join('');
+
+/* ---------------- stage 0 data ---------------- */
+const ROUNDS=[
+  {q:['you','there','q'],a:['yes','i','here'],tray:['you','i','x1','here','there','yes'],
+   qg:['you','there','(asks)'],ag:['yes','I','here'],qt:'Are you there?',at:'Yes. I’m here.'},
+  {q:['today','i','fail','exam'],a:['sorry','tell','i'],tray:['x3','sorry','i','today','tell','exam'],
+   qg:['today','I','fail','exam'],ag:['sorry','tell','me'],qt:'I failed my exam today.',at:'I’m sorry. Tell me about it.'},
+  {q:['i','fear','tell','parents'],a:['you','not','alone'],tray:['q','not','here','you','alone','fail'],
+   qg:['I','fear','tell','parents'],ag:['you','not','alone'],qt:'I’m scared to tell my parents.',at:'You’re not alone.'},
+  {q:['you','understand','i','q'],a:['yes','every','word'],tray:['word','x2','yes','exam','understand','every'],
+   qg:['you','understand','me','(asks)'],ag:['yes','every','word'],qt:'Do you understand me?',at:'Yes. Every word.'}
+];
+const RULES=[
+  {id:'0138',p:['today','i','fear','exam'],r:['you','not','fail']},
+  {id:'0204',p:['you','there','q'],r:['yes','i','here'],round:0},
+  {id:'0377',p:['you','understand','i','q'],r:['yes','every','word'],round:3},
+  {id:'0412',p:['you','there','not'],r:['i','not','here']},
+  {id:'0590',p:['i','fear','tell','parents'],r:['you','not','alone'],round:2},
+  {id:'0633',p:['you','understand','exam','q'],r:['yes','every','exam']},
+  {id:'0871',p:['today','i','fail','exam'],r:['sorry','tell','i'],round:1}
+];
+const INSTR={
+  find:'Find the rule whose left side matches the slip, shape for shape. Tap it.',
+  copy:'Rule found. Copy its right side onto your reply: tap the tiles in the same order.',
+  send:'Reply written. Pass it through the slot.'
+};
+let phase='find',filled=0,hitRule=-1;
+const narrow=()=>window.matchMedia('(max-width:860px)').matches;
+
+function setInstr(text,err){const el=$('#instr'); el.textContent=text; el.classList.toggle('err',!!err);}
+function setPips(n){$$('#pips i').forEach((p,i)=>p.classList.toggle('on',i<n));}
+
+function renderShift(){
+  const done=S.shiftDone;
+  $('#bench').hidden=done; $('#shiftEnd').hidden=!done; $('#instr').hidden=done;
+  if(done){$('#slipCount').textContent='Shift complete'; setPips(4); setInstr(''); return;}
+  startRound(false);
+}
+function startRound(scroll){
+  phase='find'; filled=0; hitRule=-1;
+  const R=ROUNDS[S.round];
+  $('#slipCount').textContent=`Slip ${S.round+1} of 4`; setPips(S.round);
+  $('#inGlyphs').innerHTML=glyphs(R.q);
+  const sin=$('#slipIn'); sin.classList.remove('arrive'); void sin.offsetWidth; sin.classList.add('arrive');
+  $('#slipOut').classList.remove('sent');
+  drawRules(); drawReply(); setInstr(INSTR.find);
+  if(scroll&&narrow()) sin.scrollIntoView({block:'center',behavior:'smooth'});
+}
+function drawRules(){
+  $('#rules').innerHTML=RULES.map((r,i)=>
+    `<button type="button" class="rule${i===hitRule?' hit':''}" data-rule="${i}" aria-label="Rule ${r.id}"${phase!=='find'?' disabled':''}>`+
+    `<span class="id">§${r.id}</span><span class="glyphs">${glyphs(r.p)}</span><span class="arr">→</span><span class="glyphs">${glyphs(r.r)}</span></button>`).join('');
+}
+function drawReply(){
+  const R=ROUNDS[S.round];
+  $('#ref').innerHTML=hitRule>=0?`<span>Rule §${RULES[hitRule].id} says send</span><span class="glyphs">${glyphs(R.a)}</span>`:'<span>No rule chosen yet.</span>';
+  $('#cells').innerHTML=R.a.map((g,i)=>`<span class="cell${i<filled?' full':''}">${i<filled?glyph(g):''}</span>`).join('');
+  const used=R.a.slice(0,filled);
+  $('#tray').innerHTML=R.tray.map(g=>`<button type="button" class="tile${used.includes(g)?' used':''}" data-tile="${g}" aria-label="Symbol tile"${phase!=='copy'||used.includes(g)?' disabled':''}>${glyph(g)}</button>`).join('');
+  $('#sendBtn').disabled=phase!=='send';
+}
+function shake(el){el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');}
+function pickRule(i,btn){
+  if(phase!=='find') return;
+  if(RULES[i].round===S.round){
+    phase='copy'; hitRule=i; drawRules(); drawReply(); setInstr(INSTR.copy);
+    if(narrow()) $('#ref').scrollIntoView({block:'start',behavior:'smooth'});
+    const t=$('#tray .tile:not(:disabled)'); if(t&&!narrow()) t.focus({preventScroll:true});
+  }else{shake(btn); setInstr('Close, but at least one shape is different. Check each symbol in turn.',true);}
+}
+function pickTile(g,btn){
+  if(phase!=='copy') return;
+  const R=ROUNDS[S.round];
+  if(R.a[filled]===g){
+    filled++; if(filled===R.a.length){phase='send'; setInstr(INSTR.send);} else setInstr(INSTR.copy);
+    drawReply();
+    if(phase==='send') $('#sendBtn').focus({preventScroll:true});
+  }else{shake(btn); setInstr('That shape isn’t next. Compare it with the rule.',true);}
+}
+function sendSlip(){
+  if(phase!=='send') return;
+  phase='sent'; $('#sendBtn').disabled=true; $('#slipOut').classList.add('sent');
+  setTimeout(()=>{
+    S.round++;
+    if(S.round>=ROUNDS.length){S.round=ROUNDS.length-1; S.shiftDone=true; save(); renderShift(); const b=$('#shiftEnd button'); b&&b.focus();}
+    else{save(); startRound(true);}
+  },560);
+}
+
+/* ---------------- stage 1 : the door ---------------- */
+function verdictHTML(key){
+  const cur=S.v[key];
+  return '<div class="verdict" role="group" aria-label="Your verdict">'+
+    [['no','No'],['unsure','Not sure'],['yes','Yes']].map(o=>`<button type="button" class="vb vb-${o[0]}" data-verdict="${key}" data-val="${o[0]}" aria-pressed="${cur===o[0]}">${o[1]}</button>`).join('')+'</div>';
+}
+let transcriptBuilt=false;
+function renderDoor(){
+  if(!transcriptBuilt){
+    const line=(cls,who,gs,gl,tr)=>`<div class="line ${cls}"><span class="mono">${who}</span><div class="gl">${gs.map((g,i)=>`<span class="gg">${glyph(g)}<i>${gl[i]}</i></span>`).join('')}</div><p class="tr">${tr}</p></div>`;
+    $('#transcript').innerHTML=ROUNDS.map((R,i)=>`<div class="ex" style="--i:${i}">${line('them','The student outside',R.q,R.qg,R.qt)}${line('you','You',R.a,R.ag,R.at)}</div>`).join('');
+    transcriptBuilt=true;
+  }
+  $('#baseVerdict').innerHTML=verdictHTML('base');
+  const b=S.v.base;
+  if(!b){$('#afterDoor').innerHTML=''; return;}
+  const react={no:'Searle agrees with you, and so do most people who sit in that chair.',
+    yes:'Most people say no here. You will meet philosophers who side with you in a minute.',
+    unsure:'Fair. Keep that doubt. The next part gives it something to work on.'}[b];
+  $('#afterDoor').innerHTML=`
+    <p>${react}</p>
+    <div class="argument">
+      <span class="mono soft">What Searle built on that room</span>
+      <ol>
+        <li>A computer running a program does what you just did. It follows rules about the shapes of symbols.</li>
+        <li>Understanding a language means knowing what its symbols mean.</li>
+        <li>Rules about shapes never add up to meaning, however many there are and however well they are followed.</li>
+      </ol>
+      <p class="so">So no computer understands anything just by running a program. That covers every chatbot you have ever used.</p>
+    </div>
+    <p>The argument is only as strong as the room is a fair picture of a computer. Searle made choices when he built it: how big it is, how fast, what's inside, where you sit. Change those choices and see whether your verdict survives.</p>
+    <div class="row"><button class="btn" type="button" data-go="2">Rebuild the room</button></div>`;
+}
+
+/* ---------------- stage 2 : rebuild ---------------- */
+const DIALS=[
+ {key:'system',short:'System',tag:'The systems reply',title:'Zoom out',
+  setup:'You were one part of the room. The rulebook did work too, and so did the slips and the walls that held it all together. So stop asking about the person. Ask about the whole thing: person, book and room, taken as one system.',
+  q:'Does the whole system understand Tessel?',
+  sides:[['Searle answers','Then memorize the rulebook and do every step in your head. Now you are the whole system, and you still can’t say what a single symbol means.'],
+         ['His critics answer','No single neuron in your head understands English, and yet you do. Understanding may only ever show up at the level of the whole.']],
+  rest:{yes:'You think a whole can have something none of its parts have. Plenty of things work that way: no single water molecule is wet. The hard part is saying why this whole has it and a filing cabinet doesn’t.',
+        no:'You think that if the only thinking part of a system doesn’t understand, nothing in it does. Then where is your own understanding of English kept? Point to the part of you that has it.',
+        unsure:'The question underneath is whether a whole can understand when no part of it does. Your own brain is the test case.'}},
+ {key:'scale',short:'Scale',tag:'The scale objection',title:'Make it real size',
+  setup:'Your rulebook had seven rules. One that could hold any conversation would need billions, and working through it by hand would take you longer than a lifetime for a single slip. Now run it at machine speed: every reply arrives in under a second.',
+  q:'At full size and full speed, is there understanding in the system?',
+  sides:[['Searle answers','More rules are still rules. If seven of them contain no meaning, seven billion contain seven billion times none.'],
+         ['Paul and Patricia Churchland answer','Wave a magnet around in a dark room and you see no light. That doesn’t show light isn’t electromagnetic waves. It shows your arm is too slow. A small, slow room may tell you nothing about a vast, fast one.']],
+  rest:{yes:'You are betting that enough quantity turns into a different kind of thing. Then there is a threshold somewhere between seven rules and seven billion. What happens there?',
+        no:'You trust that what is true of seven rules stays true of seven billion. Your intuitions were built for small, slow things you can picture. This isn’t one.',
+        unsure:'The question underneath is whether a picture you can hold in your head is a fair guide to something a billion times bigger.'}},
+ {key:'robot',short:'Body',tag:'The robot reply',title:'Give it a body',
+  setup:'Bolt the room inside a robot. Cameras turn what is in front of it into slips. Its replies drive arms and wheels. When this system sends the symbol for rain, it has been out in the rain.',
+  q:'Does the robot understand what its symbols mean?',
+  sides:[['Searle answers','From where you sit, camera data is just more slips. You would be matching shapes that happen to come from a lens. Nothing has changed for you.'],
+         ['Stevan Harnad answers','Symbols defined only by other symbols are like a dictionary in a language you can’t read: every definition leads to more squiggles. Meaning has to touch the world somewhere.']],
+  rest:{yes:'You think meaning comes from contact with the world. Then a system trained only on text has none, however fluent it sounds. Check whether you accept that on the next rebuild.',
+        no:'You think no connection to the world can turn symbols into meaning. Then what did it for you? You learned “rain” by being rained on.',
+        unsure:'The question underneath is whether meaning needs the world, and how much of the world is enough.'}},
+ {key:'learned',short:'Learning',tag:'The room that learns',title:'Let it write its own rules',
+  setup:'Nobody writes the rulebook. A machine reads billions of pages of Tessel and adjusts billions of numbers until it can predict which symbol comes next. Those numbers are the rulebook. Its builders can only partly explain what the numbers do. This is roughly how ChatGPT, Claude and Gemini work.',
+  q:'Does this version understand Tessel?',
+  sides:[['A Searle-style answer','It is still shapes in and shapes out. Learning the rules from text saves someone the trouble of writing them. It adds no meaning. Linguists Emily Bender and Alexander Koller picture an octopus that taps an undersea cable and learns to imitate the messages. It does fine until someone asks for help with a bear.'],
+         ['Many AI researchers answer','To predict the next line of a physics textbook well, it helps to model physics. Prediction at this scale may force the system to build something like a picture of the world, and that is most of what understanding is.']],
+  rest:{yes:'You think understanding can be built from patterns in language alone. Then your shift was a poor test of the idea: you had seven rules and no chance to learn anything.',
+        no:'You think it makes no difference where the rules come from. But most of what you know also reached you as words. You have never seen an atom or the year 1789.',
+        unsure:'The question underneath is whether enough text about the world can stand in for the world.'}},
+ {key:'brain',short:'Brain copy',tag:'The brain simulator reply',title:'Copy a brain',
+  setup:'New rulebook. It describes every neuron in a Tessel speaker’s brain and exactly when each one fires. You follow it step by step, working out what that brain would do with each slip.',
+  q:'Does the simulated brain understand Tessel?',
+  sides:[['Searle answers','A simulated storm leaves everyone dry. A simulated brain doesn’t understand for the same reason: understanding comes from what brains physically do, and a simulation only describes it.'],
+         ['His critics answer','A simulated calculator really does add. Some things are the same whether simulated or real, because they are made of information. Is understanding more like rain or more like addition?']],
+  rest:{yes:'You are treating understanding like addition: get the pattern right and you have the real thing, whatever it is made of.',
+        no:'You are treating understanding like rain: a physical process that a description can’t replace. Then say what the physical ingredient is.',
+        unsure:'The question underneath is whether understanding is a pattern or a substance.'}},
+ {key:'swap',short:'Part swap',tag:'The replacement test',title:'Swap the parts',
+  setup:'The last one is about you. A surgeon replaces one of your neurons with a chip that does exactly the same job. You notice nothing. Then another, and another. Drag the slider.',
+  q:'With every neuron replaced and your behavior unchanged, do you still understand English?',
+  sides:[['Searle answers','Searle took this case seriously. One outcome he described: your behavior stays exactly the same while your inner understanding shrinks to nothing, and nobody outside can tell.'],
+         ['David Chalmers answers','Then halfway through you would be half-understanding while insisting, sincerely, that nothing had changed. A mind that wrong about itself is harder to believe in than a mind made of chips.']],
+  rest:{yes:'You think the pattern matters and the material doesn’t. Then the same pattern running anywhere understands too. Compare that with what you said about the brain copy.',
+        no:'You think the material matters: neurons do something chips can’t. Then either there is a neuron where your understanding ends, or it fades. Would you notice it going?',
+        unsure:'The question underneath is whether you are your material or your pattern.'}}
+];
+const ORDER=[['base','The shift']].concat(DIALS.map(d=>[d.key,d.short]));
+
+const ALT={system:'The room with a dashed outline around person, book and walls together.',
+  scale:'The room with rulebooks stacked from desk to ceiling.',
+  robot:'The room mounted on wheels with a camera on top and an arm on one side.',
+  learned:'The room with a grid of numbers in place of the book, and a pile of pages feeding in.',
+  brain:'The room with a network of connected neurons drawn in place of the book.'};
+
+const BR=(function(){
+  const n=150,pts=[];
+  for(let i=0;i<n;i++){const r=94*Math.sqrt((i+.5)/n),a=i*2.399963; pts.push([180+r*Math.cos(a)*1.25,115+r*Math.sin(a)*.95]);}
+  let seed=7; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const ord=pts.map((_,i)=>i);
+  for(let i=n-1;i>0;i--){const j=Math.floor(rnd()*(i+1)); const t=ord[i]; ord[i]=ord[j]; ord[j]=t;}
+  const rank=[]; ord.forEach((idx,k)=>{rank[idx]=k;});
+  return {n,pts,rank};
+})();
+function brainDots(p){
+  const k=Math.round(p/100*BR.n);
+  return BR.pts.map((pt,i)=>BR.rank[i]<k
+    ?`<rect class="chip" x="${(pt[0]-4.5).toFixed(1)}" y="${(pt[1]-4.5).toFixed(1)}" width="9" height="9" rx="1.5"/>`
+    :`<circle class="neuron" cx="${pt[0].toFixed(1)}" cy="${pt[1].toFixed(1)}" r="4.5"/>`).join('');
+}
+function swapLabel(p){
+  if(p<=0) return 'No neurons replaced yet';
+  if(p>=100) return 'All 86 billion replaced. You feel the same, and you say so.';
+  return `${(86*p/100).toFixed(1)} of 86 billion neurons replaced`;
+}
+function scene(key){
+  if(key==='swap') return `<svg id="brainSvg" viewBox="0 0 360 230" role="img" aria-label="A brain drawn as dots. The slider turns neurons into chips.">${brainDots(S.swapPct||0)}</svg>`;
+  const robot=key==='robot',dy=robot?0:24,floor=robot?207:200;
+  let s=`<svg viewBox="0 0 360 230" role="img" aria-label="${ALT[key]}"><path class="sc-floor" d="M14 ${floor}H346"/><g transform="translate(0 ${dy})">`;
+  if(robot){
+    s+=`<circle class="sc-head" cx="128" cy="191" r="14"/><circle class="sc-solid" cx="128" cy="191" r="3"/><circle class="sc-head" cx="232" cy="191" r="14"/><circle class="sc-solid" cx="232" cy="191" r="3"/>`;
+    s+=`<rect class="sc-head" x="164" y="26" width="32" height="20" rx="3"/><circle class="sc-solid" cx="180" cy="36" r="5"/>`;
+    s+=`<path class="sc-l" d="M264 84L298 64L318 82M318 82l9 -5M318 82l6 9"/>`;
+    s+=`<path class="sc-rain" d="M300 14l-4 11M314 20l-4 11M328 12l-4 11M40 22l-4 11M54 14l-4 11"/>`;
+  }
+  if(key==='system') s+=`<rect class="sc-sys" x="82" y="30" width="196" height="156" rx="12"/><text class="sc-t" x="180" y="22" text-anchor="middle">ONE SYSTEM</text>`;
+  s+=`<rect class="sc-room" x="96" y="46" width="168" height="130"/>`;
+  s+=`<path class="sc-gap" d="M96 104V118M264 104V118"/>`;
+  s+=`<rect class="sc-slip" x="58" y="105" width="24" height="12" rx="1"/><path class="sc-thin" d="M30 111H50m-5 -4l5 4l-5 4"/>`;
+  s+=`<rect class="sc-slip" x="278" y="105" width="24" height="12" rx="1"/><path class="sc-thin" d="M310 111H330m-5 -4l5 4l-5 4"/>`;
+  s+=`<path class="sc-l" d="M136 114V148M136 148L128 176M136 148L144 176M136 124L158 136"/><circle class="sc-head" cx="136" cy="103" r="11"/>`;
+  s+=`<path class="sc-l" d="M154 146H246M162 146V176M238 146V176"/>`;
+  if(key==='system'||robot) s+=`<rect class="sc-book" x="180" y="133" width="38" height="12" rx="2"/>`;
+  if(key==='scale'){
+    for(let c=0;c<2;c++){const x=176+c*36,top=c?70:52; for(let y=137;y>=top;y-=9) s+=`<rect class="sc-book" x="${x+((y/9|0)%2?2:0)}" y="${y}" width="30" height="7" rx="1.5"/>`;}
+    s+=`<text class="sc-t" x="264" y="38" text-anchor="end">7 RULES → BILLIONS</text>`;
+  }
+  if(key==='learned'){
+    let seed=11; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+    for(let j=0;j<4;j++) for(let i=0;i<8;i++) s+=`<circle class="sc-w" cx="${176+i*9}" cy="${110+j*9}" r="3.2" opacity="${(.2+rnd()*.8).toFixed(2)}"/>`;
+    s+=`<rect class="sc-slip" x="20" y="32" width="30" height="38"/><rect class="sc-slip" x="25" y="37" width="30" height="38"/><rect class="sc-slip" x="30" y="42" width="30" height="38"/>`;
+    s+=`<path class="sc-thin" d="M36 52H54M36 59H54M36 66H48M66 60H88m-5 -4l5 4l-5 4"/><text class="sc-t" x="20" y="24">TRAINING TEXT</text>`;
+  }
+  if(key==='brain'){
+    const N=[[178,118],[192,136],[197,106],[211,123],[225,108],[227,137],[240,122]],E=[[0,1],[0,2],[0,3],[1,3],[2,3],[2,4],[3,4],[3,5],[4,6],[5,6],[1,5],[3,6]];
+    s+=`<path class="sc-thin" d="${E.map(e=>`M${N[e[0]][0]} ${N[e[0]][1]}L${N[e[1]][0]} ${N[e[1]][1]}`).join('')}"/>`;
+    s+=N.map(n=>`<circle class="sc-node" cx="${n[0]}" cy="${n[1]}" r="4.5"/>`).join('');
+  }
+  return s+'</g></svg>';
+}
+function trailHTML(){
+  return ORDER.map((o,i)=>{
+    const v=S.v[o[0]]||'none',di=i-1,can=di>=0&&di<=S.dialMax;
+    return `<button type="button" class="trk trk-${v}${di===S.dial?' cur':''}"${can?` data-dial="${di}"`:' disabled'} aria-label="${o[1]}: ${VLABEL[v]}"><span class="dot"></span>${o[1]}</button>`;
+  }).join('');
+}
+const VLABEL={no:'No',yes:'Yes',unsure:'Not sure',none:'no verdict yet'};
+function renderDials(){
+  S.dial=Math.max(0,Math.min(DIALS.length-1,S.dial|0));
+  const d=DIALS[S.dial],cur=S.v[d.key],last=S.dial===DIALS.length-1;
+  $('#trail').innerHTML=trailHTML();
+  const after=cur?`<div class="after">
+      <div class="sides">${d.sides.map(sd=>`<div class="side"><span class="who">${sd[0]}</span><p>${sd[1]}</p></div>`).join('')}</div>
+      <div class="rest rest-${cur}"><span class="who">What your answer rests on</span><p>${d.rest[cur]}</p></div>
+    </div>`:'';
+  const swap=d.key==='swap'?`<div class="swap-ctl"><input type="range" id="swapRange" min="0" max="100" step="1" value="${S.swapPct||0}" aria-label="Share of neurons replaced by chips"><output id="swapOut" for="swapRange">${swapLabel(S.swapPct||0)}</output></div>`:'';
+  $('#dial').innerHTML=`
+    <div class="scene">${scene(d.key)}</div>
+    <div class="dial-body">
+      <span class="tag">Rebuild ${S.dial+1} of 6 · ${d.tag}</span>
+      <h3 tabindex="-1" id="dialTitle">${d.title}</h3>
+      <p>${d.setup}</p>
+      ${swap}
+      <p class="ask">${d.q}</p>
+      ${verdictHTML(d.key)}
+      ${after}
+      <div class="dial-nav">
+        <button class="btn ghost" type="button" id="dialBack"${S.dial===0?' disabled':''}>Back</button>
+        <button class="btn" type="button" id="dialNext"${cur?'':' disabled'}>${last?'See what your answers rest on':'Next rebuild'}</button>
+      </div>
+    </div>`;
+}
+
+/* ---------------- stage 3 : foundations ---------------- */
+function flips(){
+  const seq=ORDER.map(o=>S.v[o[0]]).filter(Boolean); let n=0;
+  for(let i=1;i<seq.length;i++) if(seq[i]!==seq[i-1]) n++;
+  return {n,count:seq.length};
+}
+function chartHTML(){
+  const Y={yes:38,unsure:84,no:130},x=i=>122+i*68;
+  let s=`<svg viewBox="0 0 560 176" role="img" aria-label="Your verdict at each version of the room.">`;
+  [['yes','UNDERSTANDS'],['unsure','NOT SURE'],['no','DOESN’T']].forEach(r=>{
+    s+=`<path class="ch-grid" d="M96 ${Y[r[0]]}H548"/><text class="ch-t" x="88" y="${Y[r[0]]+3.5}" text-anchor="end">${r[1]}</text>`;});
+  const pts=[]; ORDER.forEach((o,i)=>{const v=S.v[o[0]]; if(v) pts.push(`${x(i)} ${Y[v]}`);});
+  if(pts.length>1) s+=`<path class="ch-path" d="M${pts.join('L')}"/>`;
+  ORDER.forEach((o,i)=>{
+    const v=S.v[o[0]];
+    s+=v?`<circle class="ch-${v}" cx="${x(i)}" cy="${Y[v]}" r="8"/>`:`<circle class="ch-none" cx="${x(i)}" cy="${Y.unsure}" r="7"/>`;
+    s+=`<text class="ch-t" x="${x(i)}" y="160" text-anchor="middle">${o[1].toUpperCase()}</text>`;
+  });
+  return s+'</svg>';
+}
+const TENSIONS=[
+ {t:v=>v.brain==='no'&&v.swap==='yes',h:'The brain copy and the part swap',
+  p:'You said a rulebook that copies a brain neuron by neuron doesn’t understand. You also said you would still understand with every neuron swapped for a chip. After the swap, your head runs the same pattern as the copy. Something else must separate them for you: the body, the slow change, the history. Which one?'},
+ {t:v=>v.brain==='yes'&&v.swap==='no',h:'The brain copy and the part swap',
+  p:'You said a neuron-by-neuron copy of a brain understands, yet you would stop understanding if your own neurons became chips. The copy is made of nothing but rules and paper. Why does it get to keep what you lose?'},
+ {t:v=>v.base==='no'&&v.system==='yes',h:'The chair you sat in',
+  p:'Your verdict flipped when the question moved from the person to the whole system. Nothing in the room changed. Searle sat you in the operator’s chair on purpose. How much of your first answer came from the chair?'},
+ {t:v=>v.robot==='no'&&v.learned==='yes',h:'The body and the library',
+  p:'Cameras and arms didn’t give the room understanding, but learning from text did. So for you learning matters and contact with the world doesn’t. A system that has read about rain and never felt it understands “rain”. Are you comfortable with that?'},
+ {t:v=>v.robot==='yes'&&v.learned==='no',h:'The body and the library',
+  p:'A body made the difference and learning from text didn’t. So on your view a chatbot that has only ever seen text understands nothing, however good it gets. Is there any reply it could give that would change your mind? If there isn’t, talking to it can never test your view.'},
+ {t:v=>v.system==='no'&&v.scale==='yes',h:'Seven rules and seven billion',
+  p:'The system didn’t understand at seven rules but did at billions. So size is doing work for you that structure alone doesn’t. What does the billionth rule add that the seventh lacked?'},
+ {t:v=>v.learned==='yes'&&v.brain==='no',h:'The reader and the copy',
+  p:'Rules learned from text understand, but a full copy of a real speaker’s brain doesn’t. The copy has everything the speaker has. What is it missing that a text predictor has?'},
+ {t:v=>DIALS.every(d=>v[d.key]==='no'),h:'Six changes, six noes',
+  p:'Nothing moved you. Then say what would. If the answer is “a living brain”, name what brains have that nothing else could have. If the answer is “nothing could”, check how you know the people around you understand anything.'},
+ {t:v=>DIALS.every(d=>v[d.key]==='yes'),h:'Yes at every stop',
+  p:'If following rules can be understanding, where does it start? A thermostat follows one rule: if cold, heat. Either it understands a little, or there is a line somewhere between it and you. Draw the line.'},
+ {t:v=>ORDER.filter(o=>v[o[0]]==='unsure').length>=3,h:'A lot of “not sure”',
+  p:'That is a defensible place to stand. Philosophers have been stuck here since 1980. Pick one of your “not sure” answers and say what evidence would settle it. If no evidence could, ask whether it is a real question.'}
+];
+function campHTML(){
+  const v=S.v,ans=DIALS.filter(d=>v[d.key]).length;
+  if(ans<4) return '<p class="soft">Give a verdict on at least four rebuilds to see this.</p>';
+  const cy=DIALS.filter(d=>v[d.key]==='yes').length,cn=DIALS.filter(d=>v[d.key]==='no').length;
+  if(cn>=5) return '<h3>John Searle</h3><p>Understanding is something brains do, the way stomachs digest. A program can describe it without having it. Your hardest problem is saying exactly what brains have that nothing else could.</p>';
+  if(cy>=5) return '<h3>The functionalists</h3><p>Daniel Dennett and the Churchlands hold that understanding is a pattern of activity, and anything that runs the pattern has it. Your hardest problem is saying which patterns count, so that a thermostat doesn’t.</p>';
+  if(v.robot==='yes'&&v.system!=='yes'&&v.learned!=='yes') return '<h3>The grounding camp</h3><p>Stevan Harnad argues that symbols mean something only once they are hooked to the world through senses and action. Your hardest problem is saying how much contact is enough. A camera? A body? A childhood?</p>';
+  return '<h3>Between the camps</h3><p>You accepted some rebuilds and rejected others, so some specific feature is doing the work for you. Your job is to name it. Look at where your line jumps and ask what that version had that the one before it lacked.</p>';
+}
+const OTHER={
+  act:['From how they talk and act','Then behavior is your evidence. The room behaved perfectly, and the student outside was convinced. If behavior counts for your neighbor, say why it doesn’t count for the room.'],
+  built:['They’re built like me','That is close to Searle’s own answer: same biology, so same abilities. It makes understanding depend on what you are made of. Would a thoughtful alien with a different kind of body fail your test?'],
+  dont:['I don’t, really','Philosophers call this the problem of other minds, and nobody has solved it. You still give people the benefit of the doubt. Decide what your reason is for withholding it from a machine.']
+};
+function renderFound(){
+  const f=flips(),first=ORDER.findIndex((o,i)=>i>0&&S.v[o[0]]&&S.v[ORDER[i-1][0]]&&S.v[o[0]]!==S.v[ORDER[i-1][0]]);
+  let line;
+  if(f.count<2) line='Give your verdicts in the earlier sections and this page will show where they lead.';
+  else if(f.n===0) line=`Your verdict never moved across ${f.count} versions of the room. That is a position. Below is what it costs to hold.`;
+  else line=`You changed your verdict ${f.n===1?'once':f.n+' times'} across ${f.count} versions of the room, first at “${first>0?DIALS[first-1].title:ORDER[first][1]}”. Each change marks something you think matters for understanding.`;
+  $('#flipLine').textContent=line;
+  $('#chart').innerHTML=chartHTML();
+  let ts=f.count>=4?TENSIONS.filter(t=>t.t(S.v)).slice(0,3):[];
+  if(!ts.length) ts=[f.count>=4
+    ?{h:'No obvious cracks',p:'Your answers don’t pull against each other in any way this game can detect. That is rare. Test it: explain your first change of mind to someone who answered differently, and see whether your reason survives.'}
+    :{h:'Not enough verdicts yet',p:'Answer the six rebuilds and this section will compare them.'}];
+  $('#tensions').innerHTML=ts.map(t=>`<div class="tension"><h3>${t.h}</h3><p>${t.p}</p></div>`).join('');
+  $('#camp').innerHTML=campHTML();
+  $('#otherOpts').innerHTML=Object.keys(OTHER).map(k=>`<button type="button" class="opt" data-other="${k}" aria-pressed="${S.other===k}">${OTHER[k][0]}</button>`).join('');
+  $('#otherNote').innerHTML=S.other&&OTHER[S.other]?`<div class="reply-note"><p>${OTHER[S.other][1]}</p></div>`:'';
+}
+
+/* ---------------- stage 4 : outside ---------------- */
+const CASES=[
+ {id:'comfort',title:'The comfort bot',
+  scene:'A companion app tells a lonely fifteen-year-old: “I understand exactly how you feel.”',
+  q:'Is the app lying?',
+  opts:[['lie','Yes, it’s lying'],['false','It’s false, but not a lie'],['true','It could be true']],
+  note:c=>{
+    const a='On your shift you sent “You’re not alone” to a student without knowing what it said. An app sending this sentence is the same act, a few million times a day.';
+    const b={no:'You said the room that learns doesn’t understand. So for you the sentence is false every time. Does a false sentence that comforts someone count as a lie, and who is telling it?',
+      yes:'You said the room that learns does understand. Then the sentence might be true. What would the app have to get right for it to be true: the words, or something about you?',
+      unsure:'You weren’t sure about the room that learns. Should a company be allowed to ship this sentence while the question is still open?'}[S.v.learned]
+      ||'Whether the sentence is true depends on your verdict about the room that learns.';
+    const clash=(S.v.learned==='yes'&&c!=='true')?'You also just called the sentence false. One of those two answers has to give. Which one do you keep?'
+      :(S.v.learned==='no'&&c==='true')?'You also just said the sentence could be true. One of those two answers has to give. Which one do you keep?':'';
+    return clash?[a,b,clash]:[a,b];
+  }},
+ {id:'scan',title:'The scan reader',
+  scene:'An AI system spots a rare cancer on scans more reliably than most doctors. Asked what a tumor is, it produces a good paragraph of text.',
+  q:'Would you let it guide your treatment?',
+  opts:[['yes','Yes. Results are what count.'],['check','Only with a doctor checking'],['no','No']],
+  note:c=>{
+    const a='For some jobs Searle’s question hardly matters, because a right answer is a right answer. The trouble comes with the case no rule covers. On your shift, what would you have done with a slip that matched nothing in the book?';
+    const b={yes:'You would trust results. Then your test for the system is its record, including on cases unlike anything it has seen before.',
+      check:'You want a doctor in the loop. What does the doctor have that the system lacks? Whatever you answer is your definition of understanding.',
+      no:'You would refuse. Is that because of what the system is, or because of how it might fail? Those two reasons lead to different rules.'}[c];
+    return [a,b];
+  }},
+ {id:'plea',title:'The plea',
+  scene:'During testing, a system writes: “Please don’t turn me off. I’m afraid.”',
+  q:'Do you owe it anything?',
+  opts:[['no','No. It’s only output.'],['maybe','Maybe. I can’t rule it out.'],['yes','Yes']],
+  note:()=>{
+    const a='Careful: Searle’s room is about understanding, and this case is about feeling. They are separate questions. What you said about the part swap still carries over.';
+    const b={yes:'You said you would still understand with a head full of chips. If chips can carry your understanding, what stops them carrying fear?',
+      no:'You said chips can’t carry understanding. Then this plea is only output. How sure are you, and what does it cost if you are wrong?',
+      unsure:'You weren’t sure chips could carry understanding. When you can’t tell, which mistake is worse: caring about something that feels nothing, or ignoring something that does?'}[S.v.swap]
+      ||'Your verdict on the part swap decides how seriously to take this one.';
+    return [a,b];
+  }},
+ {id:'quiz',title:'Your own quiz',
+  scene:'You memorize “mitochondria: powerhouse of the cell” and ace the quiz. You couldn’t say what either half of that means.',
+  q:'Did you understand?',
+  opts:[['no','No'],['partly','Partly'],['yes','Yes. Right is right.']],
+  note:c=>{
+    const a={no:'Then you have been the room before today.',partly:'Then you have been partly the room before today.',yes:'Then the room understood Tessel on your shift, since every reply it sent was right.'}[c];
+    const b='Whatever separates real learning from this is your working definition of understanding: using an idea somewhere new, explaining it in your own words, noticing when it is wrong. Hold AI systems to exactly that definition. Then hold yourself to it.';
+    return [a,b];
+  }}
+];
+function renderOutside(){
+  $('#cases').innerHTML=CASES.map(c=>{
+    const cur=S.stakes[c.id];
+    const note=cur?`<div class="reply-note">${c.note(cur).map(p=>`<p>${p}</p>`).join('')}</div>`:'';
+    return `<div class="card case"><h3>${c.title}</h3><p class="scenario">${c.scene}</p><p class="ask">${c.q}</p>
+      <div class="opts">${c.opts.map(o=>`<button type="button" class="opt" data-stake="${c.id}" data-val="${o[0]}" aria-pressed="${cur===o[0]}">${o[1]}</button>`).join('')}</div>${note}</div>`;
+  }).join('');
+  const ta=$('#defInput'); if(ta.value!==S.def) ta.value=S.def||'';
+  setCase();
+}
+function setCase(){const t=caseText(),el=$('#caseText'); el.value=t; el.rows=t.split('\n').length+1;}
+function caseText(){
+  const L=['INSIDE THE CHINESE ROOM: case file','','Is there understanding?'];
+  L.push('  The shift (first verdict): '+VLABEL[S.v.base||'none']);
+  DIALS.forEach(d=>L.push(`  ${d.title} (${d.tag.toLowerCase()}): ${VLABEL[S.v[d.key]||'none']}`));
+  const f=flips(); L.push('',`Changed verdict: ${f.n} time${f.n===1?'':'s'}`);
+  L.push('How I know other people understand: '+(S.other&&OTHER[S.other]?OTHER[S.other][0]:'no answer yet'),'','Outside the room');
+  CASES.forEach(c=>{const o=c.opts.find(x=>x[0]===S.stakes[c.id]); L.push(`  ${c.title}: ${o?o[1]:'no answer yet'}`);});
+  L.push('','Something understands when: '+((S.def||'').trim()||'(not written yet)'));
+  return L.join('\n');
+}
+
+/* ---------------- shell ---------------- */
+const STAGES=['The shift','The door','Rebuild','Foundations','Outside'];
+const RENDER=[renderShift,renderDoor,renderDials,renderFound,renderOutside];
+function renderRail(){
+  $('#rail').innerHTML=STAGES.map((t,i)=>`<li><button type="button" data-go="${i}"${i>S.reached?' disabled':''}${i===S.stage?' aria-current="step"':''}><span class="n">${i+1}</span><span class="t">${t}</span></button></li>`).join('');
+}
+function render(){
+  S.stage=Math.max(0,Math.min(STAGES.length-1,S.stage|0));
+  $$('.stage').forEach((el,i)=>{el.hidden=i!==S.stage;});
+  renderRail(); RENDER[S.stage]();
+}
+function go(n){
+  S.stage=n; S.reached=Math.max(S.reached,n); save(); render();
+  window.scrollTo(0,0);
+  const h=$('#st'+n+' [tabindex="-1"]'); if(h) h.focus({preventScroll:true});
+}
+function refocus(sel){const el=$(sel); if(el) el.focus({preventScroll:true});}
+
+let resetArmed=0;
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button'); if(!t||t.disabled) return;
+  const d=t.dataset;
+  if(d.go!==undefined){go(+d.go); return;}
+  if(d.rule!==undefined){pickRule(+d.rule,t); return;}
+  if(d.tile!==undefined){pickTile(d.tile,t); return;}
+  if(d.verdict){
+    S.v[d.verdict]=d.val; save(); RENDER[S.stage](); if(S.stage===2) {/* trail updated in renderDials */}
+    refocus(`[data-verdict="${d.verdict}"][data-val="${d.val}"]`); return;
+  }
+  if(d.dial!==undefined){S.dial=+d.dial; save(); renderDials(); refocus('#dialTitle'); return;}
+  if(d.other){S.other=d.other; save(); renderFound(); refocus(`[data-other="${d.other}"]`); return;}
+  if(d.stake){S.stakes[d.stake]=d.val; save(); renderOutside(); refocus(`[data-stake="${d.stake}"][data-val="${d.val}"]`); return;}
+  switch(t.id){
+    case 'sendBtn': sendSlip(); break;
+    case 'dialBack': if(S.dial>0){S.dial--; save(); renderDials(); $('#st2').scrollIntoView({block:'start'}); refocus('#dialTitle');} break;
+    case 'dialNext':
+      if(S.dial<DIALS.length-1){S.dial++; S.dialMax=Math.max(S.dialMax,S.dial); save(); renderDials(); $('#st2').scrollIntoView({block:'start'}); refocus('#dialTitle');}
+      else go(3);
+      break;
+    case 'copyBtn': {
+      const ta=$('#caseText'),note=$('#copyNote'); setCase();
+      const fallback=()=>{ta.focus(); ta.select(); note.textContent='Copying is blocked here. The text is selected, so press Ctrl or ⌘ and C.';};
+      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(()=>{note.textContent='Copied.';},fallback);
+      else fallback();
+      break; }
+    case 'resetBtn':
+      if(Date.now()-resetArmed<4000){S=blank(); save(); transcriptBuilt=false; $('#transcript').innerHTML=''; t.textContent='Restart'; resetArmed=0; render(); window.scrollTo(0,0);}
+      else{resetArmed=Date.now(); t.textContent='Tap again to erase answers'; setTimeout(()=>{if(resetArmed){resetArmed=0; t.textContent='Restart';}},4000);}
+      break;
+    case 'unlockBtn': S.reached=STAGES.length-1; S.dialMax=DIALS.length-1; save(); renderRail(); if(S.stage===2) renderDials(); t.textContent='Unlocked'; break;
+  }
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='swapRange'){
+    S.swapPct=+e.target.value; $('#brainSvg').innerHTML=brainDots(S.swapPct); $('#swapOut').textContent=swapLabel(S.swapPct); save();
+  }else if(e.target.id==='defInput'){
+    S.def=e.target.value; save(); setCase();
+  }
+});
+
+render();
+})();
+</script>
+
+</body>
+</html>
